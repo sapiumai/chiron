@@ -11,3 +11,7 @@ depends_on = ["chiron"]
 [[modules]]
 path = "chiron_cache"
 depends_on = []
+
+[[modules]]
+path = "chiron_worker"
+depends_on = ["chiron", "chiron_cache"]

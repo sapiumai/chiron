@@ -31,6 +31,28 @@ services:
     profiles:
       - ollama
 
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  worker-daemon:
+    build: .
+    entrypoint: ["python", "-m", "chiron_worker"]
+    env_file:
+      - .env
+    environment:
+      # Composed from postgres's own POSTGRES_* env vars (above) rather than
+      # kept as a second, independently-set connection string.
+      - TRADINGAGENTS_POSTGRES_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      - postgres
+
 volumes:
   tradingagents_data:
   ollama_data:
+  postgres_data:
