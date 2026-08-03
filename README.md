@@ -39,9 +39,9 @@ current sprint status.
 
 ## Provenance
 
-The `tradingagents/`, `cli/`, `tests/`, and related source files in this
-repo are a clean-copy fork of TradingAgents (no imported git history) — see
-[NOTICE](NOTICE) for the upstream commit and license terms.
+The `src/chiron/`, `src/chiron_cli/`, `src/tests/`, and related source files
+in this repo are a clean-copy fork of TradingAgents (no imported git
+history) — see [NOTICE](NOTICE) for the upstream commit and license terms.
 
 ## Getting started
 
@@ -50,7 +50,7 @@ install with `pip install -e .`, copy `.env.example` to `.env` and set the
 relevant provider API key(s) and `TRADINGAGENTS_*` overrides, then run:
 
 ```bash
-python main.py
+python scripts/main.py
 ```
 
 Chiron's own cache/worker/entry-point layer (Postgres, Domain workers, the
