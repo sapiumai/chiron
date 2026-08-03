@@ -7,3 +7,7 @@ depends_on = []
 [[modules]]
 path = "chiron_cli"
 depends_on = ["chiron"]
+
+[[modules]]
+path = "chiron_cache"
+depends_on = []

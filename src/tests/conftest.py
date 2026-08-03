@@ -57,6 +57,26 @@ def _isolate_config():
 
 
 @pytest.fixture()
+async def cache_pool():
+    """Yield an asyncpg pool against TRADINGAGENTS_POSTGRES_DSN with a clean
+    domain_cache table, or skip the test if no local Postgres is configured.
+    """
+    dsn = os.environ.get("TRADINGAGENTS_POSTGRES_DSN")
+    if not dsn:
+        pytest.skip("TRADINGAGENTS_POSTGRES_DSN not set — skipping integration test")
+
+    from chiron_cache.db import create_pool
+    from chiron_cache.schema import ensure_schema
+
+    pool = await create_pool()
+    async with pool.acquire() as conn:
+        await ensure_schema(conn)
+        await conn.execute("TRUNCATE domain_cache")
+    yield pool
+    await pool.close()
+
+
+@pytest.fixture()
 def mock_llm_client():
     client = MagicMock()
     client.get_llm.return_value = MagicMock()
