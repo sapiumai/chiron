@@ -28,5 +28,10 @@ async def create_pool() -> asyncpg.Pool:
     Python objects, so ``read_domain_cache``/``write_domain_cache`` callers
     work with plain dicts/lists rather than raw JSON strings.
     """
-    dsn = os.environ["TRADINGAGENTS_POSTGRES_DSN"]
+    dsn = os.environ.get("TRADINGAGENTS_POSTGRES_DSN")
+    if not dsn:
+        raise RuntimeError(
+            "TRADINGAGENTS_POSTGRES_DSN is not set — see .env.example for the "
+            "expected format."
+        )
     return await asyncpg.create_pool(dsn, init=_init_connection)

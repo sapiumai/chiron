@@ -26,20 +26,24 @@ async def test_same_key_lock_acquisition_blocks_until_first_transaction_ends(cac
     order = []
 
     async def task_a():
-        async with domain_lock(cache_pool, "price", "AAPL"):
+        async with domain_lock(cache_pool, "price", "AAPL") as conn:
             a_acquired.set()
             await asyncio.sleep(0.05)  # simulate work; not relied on for the proof below
+            await write_domain_cache(conn, "price", "AAPL", {"close": 1.0}, "v1")
             order.append("a-work-done")
             a_work_done.set()
         # transaction commits (and the advisory lock releases) on `async with` exit.
 
     async def task_b():
         await a_acquired.wait()
-        async with domain_lock(cache_pool, "price", "AAPL"):
+        async with domain_lock(cache_pool, "price", "AAPL") as conn:
             # Deterministic proof of blocking: B cannot be here unless A's
             # transaction has already ended, since a_work_done is only set
             # while A still holds the lock.
             assert a_work_done.is_set()
+            row = await read_domain_cache(conn, "price", "AAPL")
+            assert row["payload"] == {"close": 1.0}
+            assert row["raw_version"] == "v1"
             order.append("b-acquired")
 
     await asyncio.gather(task_a(), task_b())

@@ -17,6 +17,7 @@ bug, not something silently corrected here.
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import asyncpg
 
@@ -55,7 +56,7 @@ async def read_domain_cache(
 
 
 async def write_domain_cache(
-    conn: asyncpg.Connection, domain: str, stock: str, payload, raw_version: str
+    conn: asyncpg.Connection, domain: str, stock: str, payload: Any, raw_version: str
 ) -> None:
     """Upsert the cache row for ``(domain, stock)``.
 
