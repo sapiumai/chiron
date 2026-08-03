@@ -1,0 +1,12 @@
+This repository is forked from TradingAgents.
+
+Upstream repository: https://github.com/TauricResearch/TradingAgents.git
+Source commit:        a33fd4c0f134485a43553a2c23a63cb14adbd88f
+Imported on:           2026-08-03
+
+The TradingAgents source tree (`tradingagents/`, `cli/`, `tests/`, `main.py`,
+`test.py`, `pyproject.toml`, `requirements.txt`, `Dockerfile`,
+`docker-compose.yml`, `scripts/`, `assets/`, `README.md`, `LICENSE`,
+`CHANGELOG.md`, `.dockerignore`, `.env.example`, `.env.enterprise.example`)
+was copied into this repo as a clean baseline, with no git history import.
+See LICENSE for the upstream project's license terms.
