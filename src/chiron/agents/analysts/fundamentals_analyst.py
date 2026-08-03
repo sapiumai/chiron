@@ -1,3 +1,4 @@
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from chiron.agents.utils.agent_utils import (
@@ -8,12 +9,32 @@ from chiron.agents.utils.agent_utils import (
     get_instrument_context_from_state,
     get_language_instruction,
 )
+from chiron.agents.utils.cache_lookup import get_cached_payload
+from chiron.dataflows.symbol_utils import normalize_symbol
+
+
+def _render_fundamentals_report_from_cache(payload: dict) -> str:
+    line_items = payload["line_items"]
+    lines = [f"- {key}: {value}" for key, value in line_items.items() if value is not None]
+    return (
+        f"Fundamentals data (from cache), next report date: "
+        f"{payload['next_report_date']}\n" + "\n".join(lines)
+    )
 
 
 def create_fundamentals_analyst(llm):
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
         instrument_context = get_instrument_context_from_state(state)
+
+        stock = normalize_symbol(state["company_of_interest"])
+        payload = get_cached_payload("earnings", stock)
+        if payload is not None and payload.get("line_items"):
+            fundamentals_report = _render_fundamentals_report_from_cache(payload)
+            return {
+                "messages": [AIMessage(content=fundamentals_report)],
+                "fundamentals_report": fundamentals_report,
+            }
 
         tools = [
             get_fundamentals,
