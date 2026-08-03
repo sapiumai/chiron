@@ -1,0 +1,9 @@
+source_roots = ["src"]
+
+[[modules]]
+path = "chiron"
+depends_on = []
+
+[[modules]]
+path = "chiron_cli"
+depends_on = ["chiron"]

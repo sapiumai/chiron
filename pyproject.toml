@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "tradingagents"
-version = "0.3.1"
-description = "TradingAgents: Multi-Agents LLM Financial Trading Framework"
+name = "chiron"
+version = "0.4.0"
+description = "Chiron: an internal, single-operator stock analysis tool, forked from TradingAgents"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -41,24 +41,23 @@ dev = [
     "ruff>=0.15",
     "pytest>=8.0",
     "pytest-subtests>=0.13",
+    "deadcode>=2.4.1",
+    "tach>=0.35.0",
 ]
 # Amazon Bedrock support (AWS SigV4 auth + boto3). Optional so the core install
-# stays lean: pip install "tradingagents[bedrock]".
+# stays lean: pip install "chiron[bedrock]".
 bedrock = [
     "langchain-aws>=1.5.0",
 ]
 
 [project.scripts]
-tradingagents = "cli.main:app"
+chiron = "chiron_cli.main:app"
 
-[tool.setuptools.packages.find]
-include = ["tradingagents*", "cli*"]
-
-[tool.setuptools.package-data]
-cli = ["static/*"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/chiron", "src/chiron_cli"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src/tests"]
 addopts = "-ra --strict-markers"
 markers = [
     "unit: fast isolated unit tests",
