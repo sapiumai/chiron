@@ -7,6 +7,6 @@
   "domains": {
     "price": {"trigger": "interval", "seconds": 900, "rate_limit_per_day": null},
     "earnings": {"trigger": "interval", "seconds": 86400, "rate_limit_per_day": 25},
-    "news": {"trigger": "interval", "seconds": 300, "rate_limit_per_day": 25}
+    "news": {"trigger": "interval", "seconds": 1800, "rate_limit_per_day": 25}
   }
 }

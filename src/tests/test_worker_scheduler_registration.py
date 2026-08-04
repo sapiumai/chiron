@@ -1,5 +1,7 @@
 """Unit tests for chiron_worker.scheduler job registration and isolation (AC1, AC4)."""
 
+from datetime import datetime, timedelta
+
 import pytest
 
 from chiron_worker import scheduler as scheduler_module
@@ -33,6 +35,20 @@ def test_job_intervals_match_config_seconds():
     assert jobs["price"].trigger.interval.total_seconds() == 900
     assert jobs["earnings"].trigger.interval.total_seconds() == 86400
     assert jobs["news"].trigger.interval.total_seconds() == 300
+
+
+@pytest.mark.unit
+def test_interval_jobs_fire_immediately_on_daemon_start():
+    """A freshly (re)started daemon must not leave every Domain stale for up
+    to a full interval (24h for Earnings) before its first recompute."""
+    before = datetime.now()
+    scheduler = scheduler_module.build_scheduler(_CONFIG, pool=None)
+    after = datetime.now()
+    jobs = {job.id: job for job in scheduler.get_jobs()}
+
+    for job in jobs.values():
+        next_run = job.next_run_time.replace(tzinfo=None)
+        assert before <= next_run <= after + timedelta(seconds=1)
 
 
 @pytest.mark.unit
