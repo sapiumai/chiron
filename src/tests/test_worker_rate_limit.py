@@ -1,5 +1,6 @@
 """Unit tests for chiron_worker.rate_limiter's shared Alpha Vantage counter (AC5)."""
 
+import asyncio
 from datetime import UTC, datetime
 
 import pytest
@@ -52,3 +53,21 @@ def test_counter_resets_after_utc_midnight(monkeypatch):
 
     _FakeDatetime.current = datetime(2026, 8, 4, 0, 5, tzinfo=UTC)
     assert limiter.try_acquire("alpha_vantage") is True
+
+
+@pytest.mark.unit
+async def test_try_acquire_is_safe_under_concurrent_callers():
+    """AC2 regression: `try_acquire` has no `await` inside it, so concurrent
+    `asyncio.gather`-scheduled callers (from this story's parallelized
+    per-ticker fan-out) can never collectively exceed the shared cap — each
+    call runs to completion atomically on the single event loop thread.
+    """
+    limiter = VendorRateLimiter({"alpha_vantage": 3})
+
+    async def call() -> bool:
+        await asyncio.sleep(0)  # yield first so all 10 calls interleave, not run back-to-back
+        return limiter.try_acquire("alpha_vantage")
+
+    results = await asyncio.gather(*(call() for _ in range(10)))
+
+    assert sum(results) == 3
