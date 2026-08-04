@@ -61,7 +61,13 @@ bedrock = [
 chiron = "chiron_cli.main:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/chiron", "src/chiron_cli", "src/chiron_cache", "src/chiron_worker"]
+packages = [
+    "src/chiron",
+    "src/chiron_cli",
+    "src/chiron_cache",
+    "src/chiron_worker",
+    "src/chiron_entrypoint",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["src/tests"]
