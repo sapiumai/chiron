@@ -2,7 +2,7 @@ source_roots = ["src"]
 
 [[modules]]
 path = "chiron"
-depends_on = []
+depends_on = ["chiron_cache"]
 
 [[modules]]
 path = "chiron_cli"

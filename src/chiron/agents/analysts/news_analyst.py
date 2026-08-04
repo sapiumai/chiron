@@ -1,3 +1,4 @@
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from chiron.agents.utils.agent_utils import (
@@ -8,6 +9,17 @@ from chiron.agents.utils.agent_utils import (
     get_news,
     get_prediction_markets,
 )
+from chiron.agents.utils.cache_lookup import get_cached_payload
+from chiron.dataflows.symbol_utils import normalize_symbol
+
+
+def _render_news_report_from_cache(payload: dict) -> str:
+    signals = payload["signals"]
+    lines = [
+        f"- {s['entity']}: {s['tendency']} (confidence={s['confidence']}, as_of={s['as_of']})"
+        for s in signals
+    ]
+    return "News signals (from cache):\n" + "\n".join(lines)
 
 
 def create_news_analyst(llm):
@@ -16,6 +28,15 @@ def create_news_analyst(llm):
         asset_type = state.get("asset_type", "stock")
         asset_label = "company" if asset_type == "stock" else "asset"
         instrument_context = get_instrument_context_from_state(state)
+
+        stock = normalize_symbol(state["company_of_interest"])
+        payload = get_cached_payload("news", stock)
+        if payload is not None and payload.get("signals"):
+            news_report = _render_news_report_from_cache(payload)
+            return {
+                "messages": [AIMessage(content=news_report)],
+                "news_report": news_report,
+            }
 
         tools = [
             get_news,

@@ -1,3 +1,4 @@
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from chiron.agents.utils.agent_utils import (
@@ -7,6 +8,19 @@ from chiron.agents.utils.agent_utils import (
     get_stock_data,
     get_verified_market_snapshot,
 )
+from chiron.agents.utils.cache_lookup import get_cached_payload
+from chiron.dataflows.symbol_utils import normalize_symbol
+
+
+def _render_market_report_from_cache(payload: dict) -> str:
+    ohlcv = payload["ohlcv"]
+    latest = ohlcv[-5:]
+    lines = [
+        f"- {row['date']}: open={row['open']}, high={row['high']}, "
+        f"low={row['low']}, close={row['close']}, volume={row['volume']}"
+        for row in latest
+    ]
+    return "Market data (from cache):\n" + "\n".join(lines)
 
 
 def create_market_analyst(llm):
@@ -14,6 +28,15 @@ def create_market_analyst(llm):
     def market_analyst_node(state):
         current_date = state["trade_date"]
         instrument_context = get_instrument_context_from_state(state)
+
+        stock = normalize_symbol(state["company_of_interest"])
+        payload = get_cached_payload("price", stock)
+        if payload is not None and payload.get("ohlcv"):
+            market_report = _render_market_report_from_cache(payload)
+            return {
+                "messages": [AIMessage(content=market_report)],
+                "market_report": market_report,
+            }
 
         tools = [
             get_stock_data,
