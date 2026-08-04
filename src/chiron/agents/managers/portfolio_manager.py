@@ -20,6 +20,7 @@ from chiron.agents.utils.structured import (
     bind_structured,
     invoke_structured_or_freetext,
 )
+from chiron_cache import format_strategy_weight_context
 
 
 def create_portfolio_manager(llm):
@@ -27,6 +28,7 @@ def create_portfolio_manager(llm):
 
     def portfolio_manager_node(state) -> dict:
         instrument_context = get_instrument_context_from_state(state)
+        strategy_context = format_strategy_weight_context(state.get("strategy", "day"))
 
         history = state["risk_debate_state"]["history"]
         risk_debate_state = state["risk_debate_state"]
@@ -43,6 +45,7 @@ def create_portfolio_manager(llm):
         prompt = f"""As the Portfolio Manager, synthesize the risk analysts' debate and deliver the final trading decision.
 
 {instrument_context}
+{strategy_context}
 
 ---
 

@@ -12,6 +12,7 @@ from chiron.agents.utils.structured import (
     bind_structured,
     invoke_structured_or_freetext,
 )
+from chiron_cache import format_strategy_weight_context
 
 
 def create_research_manager(llm):
@@ -19,6 +20,7 @@ def create_research_manager(llm):
 
     def research_manager_node(state) -> dict:
         instrument_context = get_instrument_context_from_state(state)
+        strategy_context = format_strategy_weight_context(state.get("strategy", "day"))
         history = state["investment_debate_state"].get("history", "")
 
         investment_debate_state = state["investment_debate_state"]
@@ -26,6 +28,7 @@ def create_research_manager(llm):
         prompt = f"""As the Research Manager and debate facilitator, your role is to critically evaluate this round of debate and deliver a clear, actionable investment plan for the trader.
 
 {instrument_context}
+{strategy_context}
 
 ---
 
