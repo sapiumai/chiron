@@ -8,6 +8,7 @@ recompute function needs.
 
 import logging
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from asyncpg import Pool
@@ -23,10 +24,20 @@ logger = logging.getLogger(__name__)
 def _trigger_kwargs(domain_cfg: dict) -> dict:
     trigger = domain_cfg["trigger"]
     if trigger == "interval":
-        return {"trigger": "interval", "seconds": domain_cfg["seconds"]}
+        # next_run_time=now overrides IntervalTrigger's own default first-fire
+        # time, which is otherwise one full interval away — without this, a
+        # freshly (re)started daemon leaves every Domain stale for up to its
+        # own interval (24h for Earnings) before ever recomputing anything.
+        return {
+            "trigger": "interval",
+            "seconds": domain_cfg["seconds"],
+            "next_run_time": datetime.now(),
+        }
     # cron/date aren't used by this story's own config (price/earnings/news are
     # all interval-triggered here), but any future Domain using them needs no
-    # code change: APScheduler's own kwarg names apply unchanged (AD-3).
+    # code change: APScheduler's own kwarg names apply unchanged (AD-3). Their
+    # own explicit schedule (e.g. "daily at 9am") should not be forced to also
+    # fire immediately on daemon start, unlike a plain interval.
     extra = {k: v for k, v in domain_cfg.items() if k not in ("trigger", "rate_limit_per_day")}
     return {"trigger": trigger, **extra}
 

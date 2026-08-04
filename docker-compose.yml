@@ -1,44 +1,22 @@
 services:
-  tradingagents:
-    build: .
-    env_file:
-      - .env
-    volumes:
-      - tradingagents_data:/home/appuser/.tradingagents
-    tty: true
-    stdin_open: true
-
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    profiles:
-      - ollama
-
-  tradingagents-ollama:
+  chiron:
     build: .
     env_file:
       - .env
     environment:
-      - TRADINGAGENTS_LLM_PROVIDER=ollama
-      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      # chiron_cache.db.create_pool() composes the DSN itself from
+      # POSTGRES_USER/PASSWORD/DB (already in .env) plus this host —
+      # Postgres itself is not part of this compose file; it's the shared
+      # server run by ~/Projects/docker_servers/DB/Postgres, reached here by
+      # joining its external docker_shared_network (container_name: postgres
+      # there, hence this hostname).
+      - POSTGRES_HOST=postgres
     volumes:
       - tradingagents_data:/home/appuser/.tradingagents
-    depends_on:
-      - ollama
+    networks:
+      - docker_shared_network
     tty: true
     stdin_open: true
-    profiles:
-      - ollama
-
-  postgres:
-    image: postgres:18-alpine
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
   worker-daemon:
     build: .
@@ -46,13 +24,13 @@ services:
     env_file:
       - .env
     environment:
-      # Composed from postgres's own POSTGRES_* env vars (above) rather than
-      # kept as a second, independently-set connection string.
-      - TRADINGAGENTS_POSTGRES_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    depends_on:
-      - postgres
+      - POSTGRES_HOST=postgres
+    networks:
+      - docker_shared_network
 
 volumes:
   tradingagents_data:
-  ollama_data:
-  postgres_data:
+
+networks:
+  docker_shared_network:
+    external: true
