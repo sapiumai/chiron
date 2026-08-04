@@ -1,8 +1,8 @@
 {
   "tickers": ["PETR4.SA"],
   "strategy_weights": {
-    "day": {"price": 0, "chart": 0, "news": 0, "graph": 0, "earnings": 0},
-    "swing": {"price": 0, "chart": 0, "news": 0, "graph": 0, "earnings": 0}
+    "day": {"price": 0.15, "chart": 0.35, "news": 0.20, "graph": 0.15, "earnings": 0.15},
+    "swing": {"price": 0.15, "chart": 0.10, "news": 0.15, "graph": 0.10, "earnings": 0.50}
   },
   "domains": {
     "price": {"trigger": "interval", "seconds": 900, "rate_limit_per_day": null},
