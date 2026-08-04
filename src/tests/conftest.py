@@ -58,15 +58,19 @@ def _isolate_config():
 
 @pytest.fixture()
 async def cache_pool():
-    """Yield an asyncpg pool against TRADINGAGENTS_POSTGRES_DSN with a clean
+    """Yield an asyncpg pool against the configured Postgres with a clean
     domain_cache table, or skip the test if no local Postgres is configured.
     """
-    dsn = os.environ.get("TRADINGAGENTS_POSTGRES_DSN")
-    if not dsn:
-        pytest.skip("TRADINGAGENTS_POSTGRES_DSN not set — skipping integration test")
-
-    from chiron_cache.db import create_pool
+    from chiron_cache.db import _resolve_dsn, create_pool
     from chiron_cache.schema import ensure_schema
+
+    try:
+        _resolve_dsn()
+    except RuntimeError:
+        pytest.skip(
+            "Neither TRADINGAGENTS_POSTGRES_DSN nor POSTGRES_USER/PASSWORD/DB "
+            "are set — skipping integration test"
+        )
 
     pool = await create_pool()
     async with pool.acquire() as conn:

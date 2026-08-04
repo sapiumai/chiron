@@ -46,9 +46,10 @@ services:
     env_file:
       - .env
     environment:
-      # Composed from postgres's own POSTGRES_* env vars (above) rather than
-      # kept as a second, independently-set connection string.
-      - TRADINGAGENTS_POSTGRES_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # chiron_cache.db.create_pool() composes the DSN itself from
+      # POSTGRES_USER/PASSWORD/DB (already in .env) plus this host — no
+      # second, independently-set connection string to keep in sync.
+      - POSTGRES_HOST=postgres
     depends_on:
       - postgres
 
