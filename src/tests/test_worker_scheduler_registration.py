@@ -1,9 +1,11 @@
 """Unit tests for chiron_worker.scheduler job registration and isolation (AC1, AC4)."""
 
+import asyncio
 from datetime import datetime, timedelta
 
 import pytest
 
+from chiron_cache.locking import domain_lock, write_domain_cache
 from chiron_worker import scheduler as scheduler_module
 
 _CONFIG = {
@@ -100,3 +102,60 @@ async def test_domain_job_continues_to_next_ticker_after_one_fails():
     await job()
 
     assert calls == ["AAPL"]
+
+
+@pytest.mark.unit
+async def test_domain_job_processes_tickers_concurrently_not_sequentially():
+    """AC1: N tickers must complete in ~1x one ticker's duration, not Nx it."""
+    sleep_seconds = 0.05
+    tickers = [("A", "A"), ("B", "B"), ("C", "C"), ("D", "D")]
+
+    async def slow_recompute(ticker, stock):
+        await asyncio.sleep(sleep_seconds)
+
+    job = scheduler_module._make_domain_job("price", slow_recompute, tickers)
+
+    start = asyncio.get_event_loop().time()
+    await job()
+    elapsed = asyncio.get_event_loop().time() - start
+
+    # Sequential would take ~4x sleep_seconds; concurrent should stay well under
+    # that. Threshold is deliberately loose (vs. ~1x) to absorb CI scheduling
+    # jitter without masking a regression back to sequential execution.
+    assert elapsed < sleep_seconds * 2.5
+
+
+@pytest.mark.unit
+async def test_domain_job_isolates_multiple_ticker_failures_under_concurrency():
+    """AC3: several tickers failing concurrently must not affect the rest."""
+    calls = []
+    tickers = [("BAD1", "BAD1"), ("OK1", "OK1"), ("BAD2", "BAD2"), ("OK2", "OK2")]
+
+    async def flaky(ticker, stock):
+        if ticker.startswith("BAD"):
+            raise RuntimeError("boom")
+        calls.append(ticker)
+
+    job = scheduler_module._make_domain_job("price", flaky, tickers)
+
+    await job()
+
+    assert sorted(calls) == ["OK1", "OK2"]
+
+
+@pytest.mark.integration
+async def test_parallelized_domain_job_does_not_deadlock_across_ticker_locks(cache_pool):
+    """AC4: concurrent tickers' domain_lock acquisitions must stay correctly
+    scoped to their own ``(domain, stock)`` key — exercised through the
+    actual parallelized ``_make_domain_job`` path, not ``domain_lock`` alone.
+    """
+
+    async def fake_recompute(ticker, stock):
+        async with domain_lock(cache_pool, "price", stock) as conn:
+            await asyncio.sleep(0.02)  # simulate recompute work while holding the lock
+            await write_domain_cache(conn, "price", stock, {"ticker": ticker}, "v1")
+
+    tickers = [("AAPL", "AAPL"), ("MSFT", "MSFT")]
+    job = scheduler_module._make_domain_job("price", fake_recompute, tickers)
+
+    await asyncio.wait_for(job(), timeout=5)
