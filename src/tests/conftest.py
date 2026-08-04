@@ -57,20 +57,31 @@ def _isolate_config():
 
 
 @pytest.fixture()
-async def cache_pool():
-    """Yield an asyncpg pool against the configured Postgres with a clean
-    domain_cache table, or skip the test if no local Postgres is configured.
+async def cache_pool(monkeypatch):
+    """Yield an asyncpg pool against a dedicated *test* Postgres database with
+    a clean ``domain_cache`` table, or skip the test if no local Postgres is
+    configured.
+
+    Deliberately never touches the real ``POSTGRES_DB``/``TRADINGAGENTS_POSTGRES_DSN``
+    a developer has configured for actual chiron_worker/chiron_entrypoint use —
+    this fixture's own ``TRUNCATE domain_cache`` previously ran against
+    whatever database those pointed at, silently destroying real cached data
+    on every local `pytest -m integration` run. ``POSTGRES_DB`` is overridden
+    to ``TEST_POSTGRES_DB`` (default ``chiron_test``, a sibling database, not
+    a schema/table prefix within the real one) and any explicit
+    ``TRADINGAGENTS_POSTGRES_DSN`` override is unset for the duration of the
+    fixture, so it can't point tests at a non-test database by accident.
     """
     from chiron_cache.db import _resolve_dsn, create_pool
     from chiron_cache.schema import ensure_schema
 
+    monkeypatch.delenv("TRADINGAGENTS_POSTGRES_DSN", raising=False)
+    monkeypatch.setenv("POSTGRES_DB", os.environ.get("TEST_POSTGRES_DB") or "chiron_test")
+
     try:
         _resolve_dsn()
     except RuntimeError:
-        pytest.skip(
-            "Neither TRADINGAGENTS_POSTGRES_DSN nor POSTGRES_USER/PASSWORD/DB "
-            "are set — skipping integration test"
-        )
+        pytest.skip("POSTGRES_USER/PASSWORD are not set — skipping integration test")
 
     pool = await create_pool()
     async with pool.acquire() as conn:
